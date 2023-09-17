@@ -8,18 +8,22 @@ import re
 import time
 
 isJobRunning = False
-
+myclient = pymongo.MongoClient("mongodb+srv://KartikeyaPandey:Kartikeya123@cluster0.mgxmupo.mongodb.net/?retryWrites=true&w=majority")
+mydb = myclient["99acres"]
+mycol = mydb["properties"]
 
 def scrapingJob():
     global isJobRunning
-    if not isJobRunning:
+    if isJobRunning==False:
         return
 
     def scarper(city, id):
-
+        global isJobRunning
+        if isJobRunning==False:
+            return
         WEBSITE_URL = f"https://99acres.com/search/property/buy/{city}-all?city={id}&preference=S&area_unit=1&res_com=R"
         chrome_options = webdriver.ChromeOptions()
-        chrome_options.add_argument("--headless")
+        #chrome_options.add_argument("--headless")
         driver = webdriver.Chrome(options=chrome_options)
         driver.get(WEBSITE_URL)
         time.sleep(5)
@@ -95,20 +99,17 @@ def scrapingJob():
         "Hyderabad": 38,
     }
     city_wise_data = {}
+    if isJobRunning==False:
+        return
     for city in cities:
         st.write(f"Scrapping {city} Data")
-        placeholder = st.write("Please Wait....")
-
         city_wise_data[city] = scarper(city, cities_map[city])
-        placeholder.empty()
         st.write(
             f"Scrapping {city} Data Completed got {len(city_wise_data[city])} properties")
 
     def saveInMongodbData(data):
-        import pymongo
-        myclient = pymongo.MongoClient("mongodb://localhost:27017/")
-        mydb = myclient["99acres"]
-        mycol = mydb["properties"]
+       
+        
         for city in data:
             for property in data[city]:
                 mycol.insert_one(data[city][property])
@@ -116,9 +117,7 @@ def scrapingJob():
     saveInMongodbData(city_wise_data)
 
 
-myclient = pymongo.MongoClient("mongodb://localhost:27017/")
-mydb = myclient["99acres"]
-mycol = mydb["properties"]
+
 
 st.title("99acres Data")
 st.write("Data from 99acres")
@@ -130,18 +129,19 @@ time2 = st.time_input('Set 2nd time to run the scraping job')
 
 
 if st.button("Run Scrapping Job Manually"):
+    if st.button("Stop Scrapping Job"):
+        isJobRunning = False
+        st.write("Scrapping Job Stopped")
+    isJobRunning = True
     scrapingJob()
-    if isJobRunning:
-        st.write("Scrapping Job Running.....")
-    else:
-        if st.button("Stop Scrapping Job"):
-            isJobRunning = False
-            st.write("Scrapping Job Stopped")
+   
+    
 
 
 if st.button("Run Scrapping Job Automatically"):
     import schedule
     import time
+    isJobRunning = True
 
     def job():
         scrapingJob()
