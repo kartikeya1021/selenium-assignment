@@ -3,3 +3,4 @@ schedule
 selenium
 bs4
 pymongo
+streamlit
